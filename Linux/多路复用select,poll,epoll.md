@@ -37,11 +37,194 @@
   > - void FD_SET(int fd, fd_set *set); /* 将某个描述符加入某个监听集合中 */
   > - void FD_ZERO(fd_set *set); /* 清空监听集 */
 
+> select缺点：
+> - 最多监听1024个文件描述符
+> - 每次调用select，都需要将用户空间的监控文件集数据结构复制到内核空间
+> - 每次select返回，都需要便利所有文件描述符才能够知道那个描述符发生了事件
+> - select的事件时水平触发的，事件处理后需要清空文件集后再重新设置
+
+- `int poll(struct pollfd *fds, nfds_t nfds, int timeout);`
+  > `#include <poll.h>`
+  >
+  > 描述：poll和select功能一致，只是没有了监控文件描述符数量的限制，使用数组的方式存储需要监控的文件描述符
+  >
+  > fds: 文件描述符集合
+  >
+  > ngds: 指定文件描述符的数量
+  >
+  > timeout: 设置超时时间，时间单位为毫秒(ms), 小于0时，代表poll函数一致阻塞到由事件发生，等于0时，poll函数会立即返回，即使没有事件发生，大于0时，表示等待事件的超时时间
+  >
+  > 返回：成功-返回正数，代表发生事件的描述符数量，返回0代表等待时间超时，文件描述符没有事件发生；失败-返回-1，并设置errno
+  >
+  > man 7 [参考](http://man7.org/linux/man-pages/man2/poll.2.html)
+  >
+  > pool函数调用返回的三个条件：
+  > - 监听的描述符有事件发生
+  > - 被信号中断
+  > - 超时返回
+```C
+struct pollfd {
+    int   fd;         /* 指定监听的文件描述符 */
+    short events;     /* 用于指定文件描述符需要监听的事件，poll只有监听到该事件时才返回，如果设置为0时，只有文件描述符发生POLLHUP, POLLERR， POLLNVAL时才会返回 */
+    short revents;    /* 是一个内核设置的输出值输出值，它的值是events设置的任何值，这是代表事件发生，或是POLLHUP, POLLERR, POLLNVAL等代表错误发生的事件 */
+};
+```
+  > 可监听的事件events如下：
+  > - POLLIN: 描述符有数据可读
+  > - POLLPRI: 文件描述符发生了异常
+  > - POLLOUT: 描述符可写
+  > - POLLRDHUP: 对方TCP套接字关闭了连接，需要添加定义`_GNU_SOURCE`
+  > - POLLERR: 只在revents中出现，表示poll过程发生了错误
+  > - POLLHUP: 只在revents中出现，表示管道或套接字的连接被对方关闭，只有将缓冲区的数据都读出后，才会返回0
+  > - POLLNVAL: 只在revets中出现，表示操作失败，描述符没有打开
+
+- `int ppoll(struct pollfd *fds, nfds_t nfds, const struct timespec *tmo_p, const sigset_t *sigmask);`
+  > `#include <signal.h>`
+  >
+  > `#include <poll.h>`
+  >
+  > 描述：和poll函数的功能类似，只是超时时间精度不同，以及ppoll修改了poll阻塞时的信号屏蔽
+  >
+  > fds: 文件描述和文件操作的集合
+  >
+  > nfds: 指定文件描述符的个数
+  >
+  > tmo_p: 指定poll的超时时间
+  >
+  > sigmask: 指定信号掩码， 当该值为NULL时，此函数和poll只有时间参数的区别
+  >
+  > man 7 [参考](http://man7.org/linux/man-pages/man2/poll.2.html)
+  >
+  > 返回：成功-返回正数，代表发生事件的描述符数量，返回0代表等待时间超时，文件描述符没有事件发生；失败-返回-1，并设置errno
+```C
+struct timespec {
+    long    tv_sec;         /* 秒 */
+    long    tv_nsec;        /* 纳秒 */
+};
+
+// 下面的执行
+ready = ppoll(&fds, nfds, tmo_p, &sigmask);
+// 和这里的相似
+sigset_t origmask;
+int timeout;
+
+timeout = (tmo_p == NULL) ? -1 :
+           (tmo_p->tv_sec * 1000 + tmo_p->tv_nsec / 1000000);
+pthread_sigmask(SIG_SETMASK, &sigmask, &origmask);
+ready = poll(&fds, nfds, timeout);
+pthread_sigmask(SIG_SETMASK, &origmask, NULL);
+```
+
+#### epoll
+> [epoll - I/O event notification facility](http://man7.org/linux/man-pages/man7/epoll.7.html)
+>
+> epoll多路复用方式有效的解决了select和poll机制的问题，epoll的核心概念时epoll实列，一个内核中的数据结构，从用户空间的角度来看，就是两个列表容器：
+> - interest列表：用于保存需要进行监控的文件描述列表
+> - ready列表：保存了那些已经可以进行IO操作的文件描述符
+>
+> 使用下面的这些函数来进行epoll实例的管理
+> - `int epoll_create(int size);`或`int epoll_create1(int flags);`
+> - `int epoll_ctl(int epfd, int op, int fd, struct epoll_event *event);`
+> - `int epoll_wait(int epfd, struct epoll_event *events,int maxevents, int timeout);`或`int epoll_pwait(int epfd, struct epoll_event *events,int maxevents, int timeout,const sigset_t *sigmask);`
+>
+
+> epoll的触发方式
+> - Level-triggered：水平触发
+> - edge-triggered：边沿触发
+
+- `int epoll_create(int size);`
+  > `#include <sys/epoll.h>`
+  >
+  > 描述：用于创建epoll实例
+  >
+  > size：指定最多监听描述符的数量，在Linux2.6.8后该参数被忽略，但是必须设置大于0
+  >
+  > 返回：成功-返回非负的文件描述符；失败-返回-1，并设置errno
+  >
+  > man 7 [参考](http://man7.org/linux/man-pages/man2/epoll_create.2.html)
+
+- `int epoll_create1(int flags);`
+  > `#include <sys/epoll.h>`
+  >
+  > 描述：和epoll_create一样，用于创建epoll实例
+  >
+  > flag: 设置epoll实例属性，如果为0，则和epoll_create函数一致，另外的选项有EPOLL_CLOEXEC
+  >
+  > 返回：成功-返回非负的文件描述符；失败-返回-1，并设置errno
+  >
+  > man 7 [参考](http://man7.org/linux/man-pages/man2/epoll_create.2.html)
+
+- `int epoll_ctl(int epfd, int op, int fd, struct epoll_event *event);`
+  > `#include <sys/epoll.h>`
+  >
+  > 描述：用于添加，修改，删除文件的监听事件到epoll实例中
+  >
+  > epfd: 指定epoll_create创建的epoll描述符，
+  >
+  > op: 指定操作码，EPOLL_CTL_ADD-添加文件监听，EPOLL_CTL_MOD-修改文件监听，EPOLL_CTL_DEL-删除文件监听
+  >
+  > fd: 指定文件描述符
+  >
+  > event: 指定文件描述符的监听信息
+  >
+  > 返回：成功-返回0；失败-返回-1，并设置errno
+  >
+  > man 7 [参考](http://man7.org/linux/man-pages/man2/epoll_ctl.2.html)
+  >
+  > epool事件集合：
+  > - EPOLLIN
+  > - EPOLLOUT
+  > - EPOLLPRI
+  > - EPOLLERR
+  > - EPOLLHUP
+  > - EPOLLET
+  > - EPOLLONESHOT
+```C
+struct epoll_event {
+    uint32_t     events;      /* Epoll 事件 */
+    epoll_data_t data;        /* 用户的数据变量 */
+};
+typedef union epoll_data {
+    void        *ptr;
+    int          fd;
+    uint32_t     u32;
+    uint64_t     u64;
+} epoll_data_t;
+```
+
+- `int epoll_wait(int epfd, struct epoll_event *events, int maxevents, int timeout);`
+  > `#include <sys/epoll.h>`
+  >
+  > 描述：epoll阻塞等待监听事件的发生
+  >
+  > epfd: 指定epoll描述符
+  >
+  > events: 是内核获取的事件的集合
+  >
+  > maxevents: 告诉内核events有少个事件，必须大于0且不能大于size
+  >
+  > timeout: 设置阻塞超时时间，如果传入-1，表示一直阻塞的事件发生，传入0表示就算没有事件发生也会立即返回；
+  >
+  > 返回：成功-返回获取的事件数量；失败-返回-1并设置errno
+  >
+  > man 7 [参考]()
+
+- `int epoll_pwait(int epfd, struct epoll_event *events,int maxevents, int timeout,const sigset_t *sigmask);`
+  > `#include <sys/epoll.h>`
+  >
+  > 描述：和epoll功能类似，只是添加了信号掩码
+  >
+  > sigmask: 指定信号掩码
+  >
+  > 返回：成功-返回获取的事件数量；失败-返回-1并设置errnoo
+  >
+  > man 7 [参考](http://man7.org/linux/man-pages/man2/epoll_wait.2.html)
 
 #### 参考列表
 - [Linux IO模式及 select、poll、epoll详解](https://segmentfault.com/a/1190000003063859)
 - [IO多路复用原理剖析](https://juejin.im/post/59f9c6d66fb9a0450e75713f)
 - [IO多路复用之select全面总结(必看篇)](https://www.jb51.net/article/101057.htm)
+- [epoll机制:epoll_create、epoll_ctl、epoll_wait、close](https://blog.csdn.net/yusiguyuan/article/details/15027821)
 
 #### 案列
 - 多客户端案列
