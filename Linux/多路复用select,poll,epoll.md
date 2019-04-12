@@ -7,6 +7,9 @@
 > - 如果一个服务器即要处理TCP，又要处理UDP，一般要使用I/O复用
 > - 如果一个服务器要处理多个服务或多个协议，一般要使用I/O复用
 
+> **注意**
+> - 在使用select,poll,epoll监控文件的时候，如果从用户空间关闭了文件描述符，这样有可能导致导致BUG，注意
+
 #### select
 > select和pselect允许进程监听多个文件描述符，直到一个或多文件描述符IO操作就绪后就返回通知应用程序，最多能监听FD_SETSIZE=1024个文件描述，该值硬编码再源码中，是不可以修改的,监听文件描述符大于1024的场景时需要使用poll替换select;
 
@@ -129,8 +132,8 @@ pthread_sigmask(SIG_SETMASK, &origmask, NULL);
 >
 
 > epoll的触发方式
-> - Level-triggered：水平触发
-> - edge-triggered：边沿触发
+> - Level-triggered：水平触发，只要缓冲区内有没有读完的数据，就会一直触发
+> - edge-triggered：边沿触发，只适用于非阻塞IO，只触发一次
 
 - `int epoll_create(int size);`
   > `#include <sys/epoll.h>`
@@ -148,7 +151,7 @@ pthread_sigmask(SIG_SETMASK, &origmask, NULL);
   >
   > 描述：和epoll_create一样，用于创建epoll实例
   >
-  > flag: 设置epoll实例属性，如果为0，则和epoll_create函数一致，另外的选项有EPOLL_CLOEXEC
+  > flag: 设置epoll实例属性，如果为0，则和epoll_create函数一致，另外的选项有EPOLL_CLOEXEC，该选项会给生成的epoll设置FD_CLOEXEC标志位，这样在进程中调用exec函数族的时候就会将该文件关闭，避免文件描述符泄露给exec后的进程
   >
   > 返回：成功-返回非负的文件描述符；失败-返回-1，并设置errno
   >
@@ -172,13 +175,13 @@ pthread_sigmask(SIG_SETMASK, &origmask, NULL);
   > man 7 [参考](http://man7.org/linux/man-pages/man2/epoll_ctl.2.html)
   >
   > epool事件集合：
-  > - EPOLLIN
-  > - EPOLLOUT
-  > - EPOLLPRI
-  > - EPOLLERR
-  > - EPOLLHUP
-  > - EPOLLET
-  > - EPOLLONESHOT
+  > - EPOLLIN：关联的fd可以进行读操作
+  > - EPOLLOUT：关联的fd可以进行写操作
+  > - EPOLLPRI：关联的fd有紧急可读操作
+  > - EPOLLERR：关联的fd发生了错误
+  > - EPOLLHUP：关联的fd挂起了
+  > - EPOLLET：设置关联的fd以ET触发方式工作，默认为LT
+  > - EPOLLONESHOT：只监听一次，需要再监听时需要将文件描述符再添加到inteterst列表中
 ```C
 struct epoll_event {
     uint32_t     events;      /* Epoll 事件 */
@@ -203,7 +206,7 @@ typedef union epoll_data {
   >
   > maxevents: 告诉内核events有少个事件，必须大于0且不能大于size
   >
-  > timeout: 设置阻塞超时时间，如果传入-1，表示一直阻塞的事件发生，传入0表示就算没有事件发生也会立即返回；
+  > timeout: 设置阻塞超时时间，单位为毫秒，如果传入-1，表示一直阻塞的事件发生，传入0表示就算没有事件发生也会立即返回；
   >
   > 返回：成功-返回获取的事件数量；失败-返回-1并设置errno
   >
@@ -219,12 +222,22 @@ typedef union epoll_data {
   > 返回：成功-返回获取的事件数量；失败-返回-1并设置errnoo
   >
   > man 7 [参考](http://man7.org/linux/man-pages/man2/epoll_wait.2.html)
+```C
+// epoll_pwait相当于下面的调用
+sigset_t origmask;
+
+sigprocmask(SIG_SETMASK，＆sigmask，＆origmask);
+ready = epoll_wait(epfd，＆events，maxevents，timeout);
+sigprocmask(SIG_SETMASK，＆origmask，NULL);
+```
 
 #### 参考列表
 - [Linux IO模式及 select、poll、epoll详解](https://segmentfault.com/a/1190000003063859)
 - [IO多路复用原理剖析](https://juejin.im/post/59f9c6d66fb9a0450e75713f)
 - [IO多路复用之select全面总结(必看篇)](https://www.jb51.net/article/101057.htm)
 - [epoll机制:epoll_create、epoll_ctl、epoll_wait、close](https://blog.csdn.net/yusiguyuan/article/details/15027821)
+- [Linux epoll 详解](http://blog.lucode.net/linux/epoll-tutorial.html)
+- [一个完整的 epoll + socket 的例子](https://www.felix021.com/blog/read.php?1879)
 
 #### 案列
 - 多客户端案列
@@ -498,6 +511,332 @@ static void handle_signal(int signo){
     }
 
     close(connsock);
+    exit(EXIT_SUCCESS);
+}
+```
+-  epoll_daemon.c
+> server.c
+```C
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <sys/epoll.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+
+#define BUF_SIZE 4096
+#define PORT 9000
+#define CONNECT_POOL 64
+#define LISTEN_BACK 128
+#define EPOLL_SIZE 1024
+#define EPOLL_WAIT_SIZE 128
+#define EPOLL_TIME_OUT 60000
+
+struct conn_sock_info {
+    int     conn_fd;
+    struct  sockaddr_in client_addr;
+    int     addr_len;
+};
+
+static void usage(const char *prog_name);
+static void version(const char *prog_name);
+
+int main(int argc, char *argv[]){
+    int     opt, i, j, ret;
+    int     port = PORT;
+    int     lsn_sock, conn_sock;
+    int     epoll_id;
+    int     addr_len, epoll_wait_len;
+    struct  sockaddr_in server_addr;
+    struct  sockaddr_in client_addr;
+    struct  epoll_event fd_event, events[EPOLL_WAIT_SIZE];
+    struct  conn_sock_info conn_pool[CONNECT_POOL];
+    char    buf[BUF_SIZE];
+
+    for(i = 0; i < CONNECT_POOL; i++){
+        conn_pool[i].conn_fd= -1;
+        memset(&conn_pool[i].client_addr, 0, sizeof(struct sockaddr_in));
+        conn_pool[i].addr_len = 0;
+    }
+    while((opt = getopt(argc, argv, "vhp:")) != -1){
+        switch(opt){
+            case 'p':
+                port = atoi(optarg);
+                break;
+            case 'h':
+                usage(argv[0]);
+                break;
+            case 'v':
+                version(argv[0]);
+                break;
+            default:
+                usage(argv[0]);
+        }
+    }
+
+    lsn_sock = socket(AF_INET, SOCK_STREAM, 0);
+    if(lsn_sock == -1){
+        perror("create socket error");
+        exit(EXIT_FAILURE);
+    }
+    memset(&server_addr, 0, sizeof(struct sockaddr_in));
+    server_addr.sin_family = AF_INET;
+    server_addr.sin_addr.s_addr = htonl(INADDR_ANY);
+    server_addr.sin_port = htons(port);
+    ret = bind(lsn_sock, (struct sockaddr*)&server_addr, sizeof(struct sockaddr_in));
+    if(ret == -1){
+        perror("bind error");
+        close(lsn_sock);
+        exit(EXIT_FAILURE);
+    }
+    ret = listen(lsn_sock, LISTEN_BACK);
+    if(ret == -1){
+        perror("listen error");
+        close(lsn_sock);
+        exit(EXIT_FAILURE);
+    }
+
+    epoll_id = epoll_create1(EPOLL_CLOEXEC);
+    if(epoll_id == -1){
+        perror("epoll_create error");
+        close(lsn_sock);
+        exit(EXIT_FAILURE);
+    }
+    fd_event.events = EPOLLIN;
+    fd_event.data.fd = lsn_sock;
+    ret = epoll_ctl(epoll_id, EPOLL_CTL_ADD, lsn_sock, &fd_event);
+    if(ret == -1){
+        perror("epoll_ctl error");
+        close(lsn_sock);
+        exit(EXIT_FAILURE);
+    }
+
+    for(; ;){
+        epoll_wait_len = epoll_wait(epoll_id, events, EPOLL_WAIT_SIZE, EPOLL_TIME_OUT);
+        if(ret == -1){
+            perror("epoll_wait error");
+            continue;
+        }
+        for(i = 0; i < epoll_wait_len; i++){
+            if(events[i].events & EPOLLERR || events[i].events & EPOLLHUP){
+                fprintf(stderr, "EPOLLERR or EPOLLHUP");
+                continue;
+            }
+            if(events[i].data.fd == lsn_sock){
+                conn_sock = accept(lsn_sock, (struct sockaddr*)&client_addr, &addr_len);
+                if(conn_sock == -1){
+                    perror("accept error");
+                    continue;
+                }
+                printf("connected from %s[%d]\n", inet_ntoa(client_addr.sin_addr), ntohs(client_addr.sin_port));
+                for(j = 0; j < CONNECT_POOL; j++){
+                    if(conn_pool[j].conn_fd == -1){
+                        conn_pool[j].conn_fd = conn_sock;
+                        conn_pool[j].client_addr = client_addr;
+                        conn_pool[j].addr_len = addr_len;
+
+                        break;
+                    }
+                }
+
+                fd_event.events = EPOLLIN;
+                fd_event.data.fd = conn_sock;
+                ret = epoll_ctl(epoll_id, EPOLL_CTL_ADD, conn_sock, &fd_event);
+                if(ret == -1){
+                    perror("epoll_ctl error for conn_sock");
+                    continue;
+                }
+            }else{
+                for(j = 0; j < CONNECT_POOL; j++){
+                    if(conn_pool[j].conn_fd == -1){
+                        continue;
+                    }else{
+                        if((events[i].events & EPOLLIN) && (events[i].data.fd == conn_pool[j].conn_fd)){
+                            ret = recv(conn_pool[j].conn_fd, buf, BUF_SIZE, 0);
+                            if(ret == -1){
+                                perror("recv error");
+                                break;
+                            }else if(ret == 0){
+                                fd_event.events = EPOLLIN;
+                                fd_event.data.fd = conn_pool[j].conn_fd;
+                                ret = epoll_ctl(epoll_id, EPOLL_CTL_DEL, conn_pool[j].conn_fd, &fd_event);
+                                if(ret == -1){
+                                    perror("epoll_ctl error for EPOLL_CTL_DEL");
+                                }
+
+                                close(conn_pool[j].conn_fd);
+
+                                conn_pool[j].conn_fd = -1;
+                                memset(&conn_pool[j].client_addr, 0, sizeof(struct sockaddr_in));
+                                conn_pool[j].addr_len = 0;
+
+                            }else{
+                                printf("received from %s[%d] : %s\n",
+                                    inet_ntoa(conn_pool[j].client_addr.sin_addr),
+                                    ntohs(conn_pool[j].client_addr.sin_port),
+                                    buf);
+                                ret = send(conn_pool[j].conn_fd, buf, strlen(buf) + 1, 0);
+                                if(ret == -1){
+                                    perror("send error");
+                                }
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+static void usage(const char *prog_name){
+    printf("Usage: %s options\n", prog_name);
+    printf("options:\n");
+    printf("-h      help info\n");
+    printf("-v      version info\n");
+    printf("-p      port number\n");
+
+    exit(EXIT_SUCCESS);
+}
+
+static void version(const char *prog_name){
+    printf("%s\n", prog_name);
+    printf("version.1.0.0.1");
+
+    exit(EXIT_SUCCESS);
+}
+```
+
+> client.c
+```C
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <signal.h>
+
+#define BUF_SIZE 4096
+
+int conn_sock;
+
+static void usage(const char *prog_name);
+static void version(const char *prog_name);
+static void sig_handler(int signo);
+
+int main(int argc, char *argv[]){
+    int     opt, ret;
+    int     port;
+    char    *server;
+    char    buf[BUF_SIZE];
+    struct  sockaddr_in server_addr;
+    struct  sigaction sigac;
+
+    sigac.sa_handler = sig_handler;
+    sigemptyset(&sigac.sa_mask);
+    sigac.sa_flags = 0;
+    ret = sigaction(SIGINT, &sigac, NULL);
+    if(ret == -1){
+        perror("sigaction error");
+        exit(EXIT_FAILURE);
+    }
+    if(argc < 2){
+        fprintf(stderr, "options error\n");
+        usage(argv[0]);
+    }
+    while((opt = getopt(argc, argv, "vhp:s:")) != -1){
+        switch(opt){
+            case 'p':
+                port = atoi(optarg);
+                break;
+            case 's':
+                server = optarg;
+                break;
+            case 'h':
+                usage(argv[0]);
+                break;
+            case 'v':
+                version(argv[0]);
+                break;
+            default:
+                usage(argv[0]);
+        }
+    }
+    if(port == 0){
+        fprintf(stderr, "port error\n");
+        usage(argv[0]);
+    }
+    if(server == NULL){
+        fprintf(stderr, "server ip error\n");
+        usage(argv[0]);
+    }
+
+    conn_sock = socket(AF_INET, SOCK_STREAM, 0);
+    if(conn_sock == -1){
+        perror("create socket error");
+        exit(EXIT_FAILURE);
+    }
+    memset(&server_addr, 0, sizeof(struct sockaddr_in));
+    server_addr.sin_family = AF_INET;
+    server_addr.sin_addr.s_addr = inet_addr(server);
+    server_addr.sin_port = htons(port);
+    ret = connect(conn_sock, (struct sockaddr *)&server_addr, sizeof(struct sockaddr_in));
+    if(ret == -1){
+        perror("connect error");
+        close(conn_sock);
+        exit(EXIT_FAILURE);
+    }
+    printf("%% ");
+    while(fgets(buf, BUF_SIZE, stdin) != NULL){
+        if(buf[strlen(buf) - 1] == '\n'){
+            buf[strlen(buf) - 1] = 0;
+        }
+        ret = send(conn_sock, buf, strlen(buf) + 1, 0);
+        if(ret == -1){
+            perror("send error");
+            close(conn_sock);
+            exit(EXIT_FAILURE);
+        }
+        ret = recv(conn_sock, buf, BUF_SIZE, 0);
+        if(ret == -1){
+            perror("recv error");
+            close(conn_sock);
+            exit(EXIT_FAILURE);
+        }
+        printf("recv: %s\n", buf);
+        printf("%% ");
+    }
+}
+
+static void usage(const char *prog_name){
+    printf("Usage: %s options\n", prog_name);
+    printf("options:\n");
+    printf("-p      port number\n");
+    printf("-s      server ip address\n");
+    printf("-h      help info\n");
+    printf("-v      version info\n");
+
+    exit(EXIT_SUCCESS);
+}
+
+static void version(const char *prog_name){
+    printf("%s\n", prog_name);
+    printf("version 1.0.00\n");
+
+    exit(EXIT_SUCCESS);
+}
+
+static void sig_handler(int signo){
+    if(signo == SIGINT){
+        printf("received signal SIGINT(%d)\n", SIGINT);
+    }
+    close(conn_sock);
     exit(EXIT_SUCCESS);
 }
 ```
