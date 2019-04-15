@@ -10,6 +10,12 @@
 > - 全缓冲：即填满IO缓冲区后才进行IO操作
 > - 行缓冲：遇到换行符执行IO操作
 > - \*   : 无缓冲
+>
+> 通常来说所有的标准IO都是全缓冲，即在写满缓冲区后再进行系统调用；如果一个文件流和stdout关联，则是行缓冲；标准错误是非缓冲IO；
+
+> **缓冲区的设置**
+>
+> setbuf()和setvbuf()函数的意义在于：用户打开一个文件后，可以建立自己的文件缓冲区，而不必使用fopen()函数打开文件时设定的默认缓冲区，这样就可以让用户自己来控制缓冲区，包括改变缓冲区的大小、定时刷新缓冲区、改变缓冲区类型、删除流中默认缓冲区以及为不带缓冲区的流开辟缓冲区；
 
 #### 2. 非缓冲IO
 - `int open(const char *pathname, int flags);`
@@ -25,13 +31,13 @@
   > 返回：成功-返回文件描述符；失败-返回-1，并设置errno
   >
   > man 7 [参考](http://man7.org/linux/man-pages/man2/open.2.html)
-  
+
   | flags | 描述|
   | --- | --- |
   | O_RDONLY | |
   | O_WRONLY | |
   | O_RDWR | |
-  | O_APPEND | 以追加模式打开文件，在write操作之前，将文件指针指定到文件末尾；修改文件指针和写入数据时一个原子操作 |
+  | O_APPEND | 以追加模式打开文件，在write操作之前，将文件指针指定到文件末尾；修改文件指针和写入数据是一个原子操作 |
   | O_ASYNC | 使能信号驱动IO |
   | O_CLOEXEC | |
   | O_CREAT | |
@@ -139,7 +145,7 @@
   >
   > newfd: 指定使用的新的文件描述符
   >
-  > flags: 设置文件描述符标志位，O_CLOEXE-设置文件描述符的close-on-exec标志位
+  > flags: 设置文件描述符标志位，O_CLOEXEC-设置文件描述符的close-on-exec标志位
   >
   > 返回：成功-返回新的文件描述符；失败-返回-1，并设置errno
   >
@@ -171,7 +177,7 @@
 - `int fsync(int fd);`
   > `#include <unistd.h>`
   >
-  > 描述：该函数会将文件描述符的数据和元数据刷入磁盘，数据库应用的原子操作通常使用该函数，但是它会进行两次IO，一次刷入数据，一次刷入元数据，这会使得写入性能下降；会等待磁盘操作结束后再返回；v
+  > 描述：该函数会将文件描述符的数据和元数据刷入磁盘，数据库应用的原子操作通常使用该函数，但是它会进行两次IO，一次刷入数据，一次刷入元数据，这会使得写入性能下降；会等待磁盘操作结束后再返回；
   >
   > fd: 指定文件描述符
   >
@@ -193,7 +199,7 @@
 - `FILE *fopen(const char *pathname, const char *mode);`
   > `#include <stdio.h>`
   >
-  > 描述：打开一个文件并并关联一个流
+  > 描述：打开一个文件并关联一个流
   >
   > pathnam: 文件名名称
   >
@@ -230,7 +236,7 @@
 - `FILE *freopen(const char *pathname, const char *mode, FILE *stream);`
   > `#include <unistd.h>`
   >
-  >  描述：文件重定向流，一般用于标准输入输出的重定向，如果stream已经存在，则会将其关闭
+  > 描述：文件重定向流，一般用于标准输入输出的重定向，如果stream已经存在，则会将其关闭
   >
   > pathname: 指定目录文件
   >
@@ -253,7 +259,7 @@
   >
   > man 7 [参考](http://man7.org/linux/man-pages/man3/fclose.3.html)
 
-###### 3.2 字符IO
+###### 3.3 字符IO
 - `int fgetc(FILE *stream)`
   > `#include <stdio.h>`
   >
@@ -335,7 +341,7 @@
   >
   > man 7 [参考](http://man7.org/linux/man-pages/man3/putchar.3p.html)
 
-###### 3.2 字符串IO
+###### 3.4 字符串IO
 - `char *fgets(char *restrict s, int n, FILE *restrict stream);`
   > `#include <stdio.h>`
   >
@@ -382,7 +388,7 @@
   >
   > man 7 [参考](http://man7.org/linux/man-pages/man3/puts.3.html)
 
-###### 3.3 二进制IO
+###### 3.5 二进制IO
 - `size_t fread(void *ptr, size_t size, size_t nmemb, FILE *stream);`
   > `#include <stdio.h>`
   >
@@ -415,7 +421,7 @@
   >
   > 返回：成功-返回写入的对象个数；失败-需要使用`feof`和`ferror`进行检测查看似乎发生
 
-###### 3.4 文件错误检测
+###### 3.6 文件错误检测
 - `int feof(FILE *stream);`
   > `#include <stdio.h>`
   >
@@ -458,7 +464,7 @@
   >
   > man 7 [参考](http://man7.org/linux/man-pages/man3/feof.3.html)
 
-###### 3.5 定位流
+###### 3.7 定位流
 - `long ftell(FILE *stream);`
   > `#include <stdio.h>`
   >
@@ -538,7 +544,7 @@ typedef struct
   >
   > man 7 [参考](http://man7.org/linux/man-pages/man3/fseek.3.html)
 
-###### 3.6 格式化IO
+###### 3.8 格式化IO
 - `int printf(const char *format, ...);`
   > `#include <stdio.h>`
   >
@@ -582,7 +588,7 @@ typedef struct
   > 描述：将格式化内容输出到str指定缓冲区中，注意缓冲区的大小是否足够
   >
   > str: 指定缓冲区地址
-  > 
+  >
   > format: 指定格式化内容
   >
   > 返回：成功-返回输出的字符数量；失败-返回负数
@@ -613,11 +619,81 @@ typedef struct
   >
   > 描述：功能和标准格式化类似，就是参数有区别；
 
+###### 3.9 缓冲区设置
+- `void setbuf(FILE *stream, char *buf);`
+   > `#include <stdio.h>`
+   >
+   > 描述：设置文件流的缓冲区，buf是用户手动分配的缓冲区，其大小至少为BUFSIZE(Linux 宏定义为8192)个字节
+   >
+   > stream: 指定文件流
+   >
+   > buf: 指定使用的缓冲区，如果buf为NULL，则表示设置流为无缓冲
+   >
+   > man 7 [参考](http://man7.org/linux/man-pages/man3/setbuf.3.html)
+   >
+   > note: 相当于`setvbuf(stream, buf, buf ? _IOFBF : _IONBF, BUFSIZE)`
+
+- `void setbuffer(FILE *stream, char *buf, size_t size);`
+  > `#include <stdio.h>`
+  >
+  > 描述：为文件流指定大小的缓冲区
+  >
+  > stream: 指定流
+  >
+  > buf: 指定缓冲区位置
+  >
+  > size: 指定缓冲区大小
+  >
+  > man 7 [参考](http://man7.org/linux/man-pages/man3/setbuf.3.html)
+
+- `void setlinebuf(FILE *stream);`
+  > `#include <stdio.h>`
+  >
+  > 描述：将文件流设置为行缓冲
+  >
+  > stream: 指定文件流
+  >
+  > man 7 [参考](http://man7.org/linux/man-pages/man3/setbuf.3.html)
+  >
+  > note: 该函数相当于`setvbuf(stream, NULL, _IONBF, 0);`
+
+- `int setvbuf(FILE *stream, char *buf, int mode, size_t size);`
+  > `#include <stdio.h>`
+  >
+  > 描述：设置文件流的缓冲和模式
+  >
+  > stream: 指定文件流
+  >
+  > buf: 指定缓冲区地址，处理非缓冲模式，其他模式都需要buf指定一个至少size个字节的缓冲区来替换掉当前的缓冲区，如果buf为NULL，则mode会修改当前缓冲区的缓冲模式；
+  >
+  > mode: 指定缓冲区模式
+  >> - _IONBF: 非缓冲模式
+  >> - _IOLBF: 指定为行缓冲
+  >> - _IOFBF: 指定为全缓冲
+  >
+  > size: 指定缓冲区大小
+  >
+  > 返回：成功-返回0；失败-返回非0，可能会设置errno
+  >
+  > man 7 [参考](http://man7.org/linux/man-pages/man3/setbuf.3.html)
+
+- `int fflush(FILE *stream);`
+  > `#include <stdio.h>`
+  >
+  > 描述：如果stream为输出流，则会强制调用write将缓冲区中的数据进行输出；如果为可以进行seek操作的输入流，则会将放在缓冲区中尚未被应用程序使用的数据丢弃
+  > 
+  > stream: 指定文件流
+  >
+  > 返回：成功-返回0；失败-返回EOF，并设置errno
+  >
+  > man 7 [参考](http://man7.org/linux/man-pages/man3/fflush.3.html)
+
 #### 参考列表
 - [高并发I/O模型](http://lpbobo.com/2016/04/21/%E9%AB%98%E5%B9%B6%E5%8F%91IO%E6%A8%A1%E5%9E%8B/)
 - [一步步理解Linux IO（1）–Linux的IO和标准IO库](https://836811384.iteye.com/blog/1978921)
 - [What is the difference between fsync and syncfs?](https://stackoverflow.com/questions/48171855/what-is-the-difference-between-fsync-and-syncfs)
 - [feof() - C庫函數](http://tw.gitbook.net/c_standard_library/c_function_feof.html)
+- [C语言setbuf()函数：把缓冲区与流相关联](http://c.biancheng.net/cpp/html/265.html)
 
 
 #### 案列
@@ -747,3 +823,4 @@ int main(int argc, char *argv[]){
         exit(EXIT_SUCCESS);
 }
 ```
+
