@@ -34,26 +34,26 @@
 
   | flags | 描述|
   | --- | --- |
-  | O_RDONLY | |
-  | O_WRONLY | |
-  | O_RDWR | |
+  | O_RDONLY | 只读方式打开文件 |
+  | O_WRONLY | 写方式打开文件 |
+  | O_RDWR | 读写方式打开文件，以上三种模式是互斥的 |
   | O_APPEND | 以追加模式打开文件，在write操作之前，将文件指针指定到文件末尾；修改文件指针和写入数据是一个原子操作 |
-  | O_ASYNC | 使能信号驱动IO |
-  | O_CLOEXEC | |
-  | O_CREAT | |
+  | O_ASYNC | 使能信号驱动IO，即异步IO |
+  | O_CLOEXEC | 设置文件描述符的FD_CLOEXEC标志位 |
+  | O_CREAT | 若文件不存在，则创建 |
   | O_DIRECT | |
-  | O_DIRECTORY | |
-  | O_DSYNC | |
-  | O_EXCL | |
+  | O_DIRECTORY | 如果path不是目录，则报错 |
+  | O_DSYNC |使每次write要等待物理I/O操作完成，如果该文件并不影响读取刚写入的数据，则不需要等待文件属性被更新 |
   | O_LARGEFILE | |
-  | O_NOATIME | |
-  | O_NOCTTY | |
-  | O_FOLLOW | |
-  | O_NONBLOCK | |
+  | O_EXCL | 只执行打开文件 |
+  | O_NOATIME | 不修改文件的最后访问时间 |
+  | O_NOCTTY | 如果path引用的是终端设备，则不将该设备分配作为此进程的控制终端 |
+  | O_NOFOLLOW | 如果path是一个符号链接，则出错 |
+  | O_NONBLOCK | 如果path是一个FIFO、一个块特殊文件或一个字符特殊文件，则将后续的操作和IO设置为非阻塞模式 |
   | O_PATH | |
-  | O_SYNC | |
+  | O_SYNC | 每次write等待物理I/O操作完成，包括文件数据和属性 |
   | O_TMPFILE | |
-  | O_TRUNC | |
+  | O_TRUNC | 如果文件存在，且以读方式打开，则将文件截断为0 |
 
 - `int close(int fd);`
   > `#include <unistd.h>`
@@ -80,7 +80,7 @@
   >
   > man 7 [参考](http://man7.org/linux/man-pages/man2/lseek.2.html)
   >
-  > note: 在文件末尾使用正的偏移量时允许的，这时会产生文件"空洞"，其内容在读出时为'\0'空字符，并且在磁盘上不占据空间，除非被覆盖写掉为止；
+  > note: 在文件末尾使用正的偏移量时允许的，这时会产生文件"空洞"，其内容在读出时为'\0'空字符，并且在磁盘上不占据空间，除非被覆盖写掉为止；如果文件指定是一个管道、FIFO或网络套接字，则lseek会返回-1并将errno设置为ESPIPE
 
 - `ssize_t read(int fd, void *buf, size_t count);`
   > `#include <unistd.h>`
@@ -109,6 +109,40 @@
   > 返回：成功-返回写入的数据字节数，小于或等于count;失败-返回-1，并设置errno
   >
   > man 7 [参考](http://man7.org/linux/man-pages/man2/write.2.html)
+
+- `ssize_t pread(int fd, void *buf, size_t count, off_t offset);`
+  > `#include <unistd.h>`
+  >
+  > 描述：从文件描述符偏移量为ofsset处读取最多count个字节的数据到buf中，其中指定和读取操作是原子操作，不能被中断，另外，该函数不会更新文件偏移量
+  >
+  > fd: 指定文件描述符
+  >
+  > buf: 指定缓冲区地址
+  >
+  > count: 指定最多读取的字节数量
+  >
+  > offset: 指定开始读的文件偏移量，是相对于文件开始的
+  >
+  > 返回：成功-返回读取的字节数量；失败-返回-1，并设置errno
+  >
+  > man 7 [参考](http://man7.org/linux/man-pages/man2/pread.2.html)
+
+- `ssize_t pwrite(int fd, const void *buf, size_t count, off_t offset);`
+  > `#include <unistd.h>`
+  >
+  > 描述：向文件描述符fd中写入最多count个字节
+  >
+  > fd: 指定文件描述符
+  >
+  > buf: 指定缓冲区
+  >
+  > count: 指定写入的字节数量
+  >
+  > offset: 指定从文件描述符的何处开始写，这里可以给定一个偏移量，这个偏移量是相对文件开始位置的
+  >
+  > 返回：成功-返回写入的字节数量；失败-返回-1，并设置errno
+  >
+  > man 7 [参考](http://man7.org/linux/man-pages/man2/pread.2.html)
 
 - `int dup(int oldfd);`
   > `#include <unistd.h>`
