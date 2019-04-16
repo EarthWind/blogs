@@ -1,5 +1,5 @@
 # MMAP
-> mmap是一种内存映射文件的方法，即将一个文件或者其他对象映射到进程的地址空间(一般被映射到堆栈之间的空余部分)，实现文件磁盘地址和进程虚拟地址空间中一段地址的一一映射关系，进程可以使用指针方式读写操作这一段内存，而系统会自动回写脏页到的对应的文件上，即完成对文件的操作不必调用read,write等系统调用，同时，内核空间对这段区域的修改也会直接反映到用户空间，从而可以实现不同进程间的文件共享； 
+> mmap是一种内存映射文件的方法，即将一个文件或者其他对象映射到进程的地址空间(一般被映射到堆栈之间的空余部分)，实现文件磁盘地址和进程虚拟地址空间中一段地址的一一映射关系，进程可以使用指针方式读写操作这一段内存，而系统会自动回写脏页到的对应的文件上，即完成对文件的操作不必调用read,write等系统调用，同时，内核空间对这段区域的修改也会直接反映到用户空间，从而可以实现不同进程间的文件共享；
 
 > 映射建立后，即使关闭文件，映射依然存在，因为映射的是磁盘地址，不是文件本身，和文件句柄没有关系，同时可用于进程间通信的有效地址空间不完全受限于被映射的文件的大小，因为是按页映射。
 
@@ -10,7 +10,7 @@
   >
   > 描述：将指定文件描述符代表的文件映射到进程的虚拟地址空间
   >
-  > addr: 指定映射的地址；如果为NULL，则内核会自动选择页面对齐的地址来创建映射，这也是常用的方式；如果不为NULL，则会使用addr作为映射地址的参考，Linux上会在该地址附近寻找页的整数倍地址进行隐射(注意这个地址还需要大于/proc/sys/vm/mmap_min_addr)；如果选择的这个地址已经被映射，则内核会重新选择一个新的映射地址；
+  > addr: 指定映射的地址；如果为NULL，则内核会自动选择页面对齐的地址来创建映射，这也是常用的方式；如果不为NULL，则会使用addr作为映射地址的参考，Linux上会在该地址附近寻找页的整数倍地址进行隐射(注意这个地址还需要大于`/proc/sys/vm/mmap_min_addr`)；如果选择的这个地址已经被映射，则内核会重新选择一个新的映射地址；
   >
   > length: 指定要映射的内存区域大小
   >
@@ -21,7 +21,7 @@
   >> - PROT_NONE: 页不可被访问，通常不用
   >
   > flags: 指定映射对象的类型
-  >> - MAP_FIXED
+  >> - MAP_FIXED: 
   >> - MAP_SHARED
   >> - MAP_PRIVATE
   >> - MAP_NORESERVE
@@ -70,6 +70,48 @@
   > 返回：成功-返回0；错误-返回-1，并设置errno
   >
   > man 7 [参考](http://man7.org/linux/man-pages/man2/msync.2.html)
+
+- `int mprotect(void *addr, size_t len, int prot);`
+  > `#include <sys/mman.h>`
+  >
+  > 描述：该函数可以修改指定内存区域的访问权限，内存区域的是页面级别的，当有线程访问该段程序时，如果权限在设定的权限之外，则内核会产生一个SIGSEGV信号；**另外，通过该信号，可以用来调试内存的堆栈情况**
+  >
+  > addr: 指定内存区域的开始地址，必须和内存页对齐
+  >
+  > len: 指定区域的大小，为页面的整数倍
+  >
+  > prot: 指定内存区域的保护模式
+  >
+  > 返回：成功-返回0；失败-返回-1，并设置errno
+  >
+  > man 7 [参考](http://man7.org/linux/man-pages/man2/mprotect.2.html)
+  
+> 权限包括:
+> - PROT_NONE: 不允许对内存区域进行访问
+> - PROT_READ: 内存区域只允许读操作
+> - PROT_WRITE: 内存区域可以进行写操作
+> - PROT_EXEC: 内存区域可被执行
+> - PROT_SEM: 内存区域可以用作原子操作
+> - PROT_SAO: 内存的访问必须有强制性的访问顺序
+> - PROT_GROWSUP: 将内存保护模式向上覆盖到mmap的内存最上端
+> - PROT_GROWSDOWN: 将内存的保护模式向下覆盖到mmap的内存最下端，通常使用在mmap的flag为MAP_GROWSDOWN的情况下
+
+- `int pkey_mprotect(void *addr, size_t len, int prot, int pkey);`
+  > `#include <sys/mman.h>`
+  >
+  > 描述：该函数的功能和mprotect一致，只是外加了参数[pkey](http://man7.org/linux/man-pages/man7/pkeys.7.html)
+  >
+  > addr: 指定内存区域的开始地址，必须和内存页对齐
+  >
+  > len: 指定区域的大小，为页面的整数倍
+  >
+  > prot: 指定内存区域的保护模式
+  >
+  > pkey: 设置内存的保护密钥，需要使用[pkey_alloc](http://man7.org/linux/man-pages/man2/pkey_alloc.2.html)函数生成
+  >
+  > 返回：成功-返回0；失败-返回-1，并设置errno
+  >
+  > man 7 [参考](http://man7.org/linux/man-pages/man2/mprotect.2.html)
 
 #### 参考列表
 - [认真分析mmap：是什么 为什么 怎么用](https://www.cnblogs.com/huxiao-tee/p/4660352.html)
@@ -150,5 +192,61 @@ int main(int argc, char *argv[]){
         close(fd);
 
         exit(EXIT_SUCCESS);
+}
+```
+
+- mprotect_daemon.c
+```C
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/mman.h>
+#include <signal.h>
+#include <unistd.h>
+#include <malloc.h>
+
+#define err_handle(msg) \
+        do{ perror(msg); exit(EXIT_FAILURE); } while(0)
+
+static char *buffer;
+
+static void handler(int sig, siginfo_t *si, void *unused);
+
+int main(int argc, char *argv[]){
+        char *p;
+        int pagesize;
+        struct sigaction sa;
+
+        sa.sa_flags = SA_SIGINFO;
+        sigemptyset(&sa.sa_mask);
+        sa.sa_sigaction = handler;
+        if(sigaction(SIGSEGV, &sa, NULL) == -1){
+                err_handle("sigaction error");
+        }
+        pagesize = sysconf(_SC_PAGE_SIZE);
+        if(pagesize == -1){
+                err_handle("sysconf error");
+        }
+
+        buffer = memalign(pagesize , 4 * pagesize);
+        if(buffer == NULL){
+                err_handle("memalign error");
+        }
+
+        printf("Start of region:        0x%1x\n", (long)buffer);
+        if(mprotect(buffer + pagesize * 2, pagesize, PROT_READ) == -1){
+                err_handle("mprotect error");
+        }
+
+        for(p = buffer; ;){
+                *(p++) = 'a';
+        }
+
+        printf("Loop completed\n");
+        exit(EXIT_SUCCESS);
+}
+
+static void handler(int sig, siginfo_t *si, void *unused){
+        printf("Got SIGSEGV at address : 0x%1x\n", (long)si -> si_addr);
+        exit(EXIT_FAILURE);
 }
 ```
