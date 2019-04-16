@@ -32,7 +32,7 @@
   >> - MAP_POPULATE
   >> - MAP_NONBLOCK
   >
-  > fd: 需要映射的文件描述符
+  > fd: 需要映射的文件描述符，当fd=-1时，可以作为匿名映射
   >
   > offset: 即文件从哪里开始映射，通常是0，代表从文件开始映射，该值大小应为PAGE_SIZE的整数倍
   >
@@ -52,6 +52,8 @@
   > length: 映射区域的长度
   >
   > 返回：成功-返回0；失败-返回-1，并设置errno
+  >
+  > man 7 [参考](http://man7.org/linux/man-pages/man2/mmap.2.html)
 
 - `int msync(void *addr, size_t length, int flags);`
   > `#include <sys/mman.h>`
