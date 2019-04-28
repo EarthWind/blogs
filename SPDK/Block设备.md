@@ -52,7 +52,7 @@
 > SPDK Passthru虚拟块设备模块用作如何编写虚拟块设备模块的示例。 它实现了vbdev模块所需的功能，并演示了一些其他基本功能，例如每个I/O上下文的使用。
 
 ## Pmem
-> SPDK pmem bdev驱动程序使用pmemblk池作为块I/O操作的目标，默认不参与编译，使用`-with-pmdk`进行编译，rpc使用`create_pmem_pool`命令
+> SPDK pmem bdev驱动程序使用pmemblk池作为块I/O操作的目标，默认不参与编译，使用`-with-pmdk`进行编译，rpc使用`create_pmem_pool`命令；[PMDK(Persistent Memory Development Kit)](http://pmem.io/pmdk/)
 
 ## Virtio Block
 > Virtio-Block驱动程序允许从Virtio-Block设备创建SPDK bdev
