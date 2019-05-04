@@ -112,12 +112,48 @@ NQN:nqn.2016-06.io.spdk:cnode1 disconnected 1 controller(s)
 ## TCP传输模式
 > 不依赖其他模块，默认编译
 #### 配置文档
+```
+[Nvmf]
+  AcceptorPollRate 10000
+
+[Transport]
+  Type TCP
+  #MaxQueueDepth 128
+  #MaxQueuesPerSession 4
+  #InCapsuleDataSize 4096
+  #MaxIOSize 131072
+  #IOUnitSize 131072
+  #MaxAQDepth 32
+  #NumSharedBuffers 512
+  #BufCacheSize 32
+
+[Nvme]
+  TransportID "trtype:PCIe traddr:0000:00:0e.0" Nvme0
+  RetryCount 4
+  TimeoutUsec 0
+  ActionOnTimeout None
+  AdminPollRate 100000
+  IOPollRate 0
+  HotplugEnable No
+
+[Subsystem1]
+  NQN nqn.2016-06.io.spdk:cnode1
+  Listen TCP 192.168.249.194:4420
+  AllowAnyHost Yes
+  Host nqn.2016-06.io.spdk:init
+  SN SPDK00000000000001
+  MaxNamespaces 20
+  Namespace Nvme0n1 1
+```
 
 #### host配置
 ```SHELL
 # 安装命令
 $ sudo apt install nvme-cli
-
+$ sudo modprobe nvme_tcp
+$ sudo nvme discover -t rdma -a 10.0.2.5 -s 4420 -w 10.0.2.6
 ```
 
+## 参考列表
+- [HowTo Compile Linux Kernel for NVMe over Fabrics](https://community.mellanox.com/s/article/howto-compile-linux-kernel-for-nvme-over-fabrics)
 
