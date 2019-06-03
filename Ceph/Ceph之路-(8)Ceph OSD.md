@@ -47,4 +47,6 @@ ceph osd purge {id} --yes-i-really-really-mean-it
 edit /etc/ceph.conf # 删除配置文件中的osd信息
 ```
 
+## 参考列表
+- [影响性能的关键部分-ceph的osd journal写](https://www.cnblogs.com/gzxbkk/p/7725103.html)
 
