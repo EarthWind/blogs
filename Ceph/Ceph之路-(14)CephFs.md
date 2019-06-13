@@ -3,7 +3,7 @@
 > Ceph 文件系统（ Ceph Fs）是个 POSIX 兼容的文件系统，它使用 Ceph 存储集群来存储数据。主要有三种形式的客户端：
 > - Kernel Object,内核态接口，使用mout命令来挂载CephFs文件系统
 > - FUSE用户空间文件系统，使用ceph-fuse命令来挂载CephFs到操作系统指定的目录
-> - 使用API编写的客户端
+> - 使用libcephfs提供的API编写的客户端
 
 ## 基本命令
 #### 新增FS
@@ -39,4 +39,8 @@ df –Th
 # 注意
 由于客户端在挂载文件系统的时候没有指定需要挂载的文件系统，所以需要通过ceph fs set-default来设置默认使用的文件系统；
 ```
+
+## 参考
+- [cephfs 的数据与元数据组织形式 (cephfs探索二)](https://blog.csdn.net/a1454927420/article/details/79381134)
+- [cephfs 多MDS负载均衡的使用方式](https://blog.csdn.net/a1454927420/article/details/88949725)
 
