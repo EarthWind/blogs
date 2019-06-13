@@ -33,7 +33,7 @@ libceph               524288  2 ceph,rbd
 AQARTkRbdUFhKhAAstGAl0UkUZu/pG8AyvD05Q==
 # 挂载
 sudo mkdir /mnt/mycephfs
-sudo mount -t ceph  {mds-host-ip}:6789:/ /mnt/mycephfs -o name=admin,secret=AQARTkRbdUFhKhAAstGAl0UkUZu/pG8AyvD05Q==
+sudo mount -t ceph  {mon-host-ip}:6789:/ /mnt/mycephfs -o name=admin,secret=AQARTkRbdUFhKhAAstGAl0UkUZu/pG8AyvD05Q==
 # 查看挂载
 df –Th
 # 注意
