@@ -160,10 +160,36 @@ v.size() : 0
 
 
 - `insert()`
-> 插入数据
+> 插入数据，
+
 - `emplace()`
+> 插入元素，但是不产生临时对象
+```c
+vector<string> v5;
+v5.emplace(v5.begin(), "emplace string1");
+v5.emplace(v5.begin(), "emplace string2");
+for(auto it: v5) {
+    cout << it << endl;
+}
+
+/**
+emplace string2
+emplace string1
+**/
+```
 
 - `erase()`
+> 删除某个元素或某段位置内的元素，会造成数据的前移
+```c
+vector<int> v4 = {1, 2, 3, 4, 5};
+int i = 1;
+v4.erase(v4.begin(), v4.end());
+cout << "v4.size() : " << v4.size() << endl;
+
+/**
+v4.size() : 0
+**/
+```
 
 - `push_back()`
 - `pop_back()`
@@ -189,12 +215,69 @@ pop_back()
 v.size() : 0
 **/
 ```
+```c
+vector<string> v1;
+v1.push_back("string1");
+string s = "string2";
+v1.push_back(move(s));
+for(auto it = v1.begin(); it!= v1.end(); it++) {
+    cout << *it << endl;
+}
+cout << "v1 print done" << endl;
+
+v1.pop_back();
+for(auto it: v1) {
+    cout << it << endl;
+}
+cout << "v1 print done" << endl;
+
+/**
+string1
+string2
+v1 print done
+string1
+v1 print done
+**/
+```
 
 - `emplace_back()`
+> 再vector末尾添加元素，不引入临时变量
+```c
+vector<string> v2;
+v2.emplace_back("emplace_back string1");
+for(auto it: v2) {
+    cout << it;
+}
+cout << endl;
 
+/**
+emplace_back string1
+**/
+```
 
 
 - `resize()`
+> 修改vector能够存储元素的最大值，及size()的大小
 
 - `swap()`
+> 赋值vector，并将内部清空
+```c
+vector<string> v2;
+v2.emplace_back("emplace_back string1");
+v2.push_back("push_back string2");
+vector<string> v3;
+v3.swap(v2);
+for(auto it: v3){
+    cout << it << endl;
+}
+cout << "print v3 done" << endl;
+cout << "v2.size() : " << v2.size() << endl;
+
+/**
+emplace_back string1
+push_back string2
+print v3 done
+v2.size() : 0
+**/
+```
 
