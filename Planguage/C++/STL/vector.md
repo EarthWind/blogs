@@ -161,7 +161,42 @@ v.size() : 0
 
 - `insert()`
 > 往迭代器之前插入一个元素或两个迭代器范围内的元素；
+```c
+#include <iostream>
+#include <vector>
 
+void print_vec(const std::vector<int>& vec) {
+    for(auto x: vec){
+        std::cout << " " << x;
+    }
+    std::cout << std::endl;
+}
+
+int main(){
+    std::vector<int> vec(3, 100);
+    print_vec(vec);
+
+    auto it = vec.begin();
+    it = vec.insert(it, 200);
+    print_vec(vec);
+
+    it = vec.begin();
+    std::vector<int> vec2(2, 400);
+    vec.insert(it + 2, vec2.begin(), vec2.end());
+    print_vec(vec);
+
+    int arr[] = {501, 502, 503};
+    vec.insert(vec.begin(), arr, arr + 3);
+    print_vec(vec);
+}
+
+/***
+ 100 100 100
+ 200 100 100 100
+ 200 100 400 400 100 100
+ 501 502 503 200 100 400 400 100 100
+***/
+```
 - `emplace()`
 > 插入元素，但是不产生临时对象
 ```c
@@ -260,7 +295,7 @@ emplace_back string1
 > 修改vector能够存储元素的最大值，及size()的大小
 
 - `swap()`
-> 赋值vector，并将内部清空
+> 赋值vector，交换两个vector的值
 ```c
 vector<string> v2;
 v2.emplace_back("emplace_back string1");
