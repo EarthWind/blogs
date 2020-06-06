@@ -1,27 +1,28 @@
 ## Ceph简介
 #### 1. 简介
 ###### 1.1 定义
->Ceph is a distributed object store and file system designed to provide excellent performance, reliability and scalability.
+> Ceph is a distributed object store and file system designed to provide excellent performance, reliability and scalability.
 
-Ceph官网对Ceph给出了以上的定义，主要就是说：Ceph是用于提供高性能、高可用性、高扩展性的分布式对象存储和文件系统；从定义中，首先明确Ceph是一个分布式的存储系统，能够在同一集群中同时提供对象存储、文件存储和块存储，
+Ceph官网对Ceph给出了以上的定义,Ceph是用于提供高性能、高可用性、高扩展性的分布式对象存储和文件系统；从定义中，标名Ceph是一个分布式的存储系统，目前能够在同一集群中同时提供块存储、文件存储和对象存储，
 
-- 对象存储：Ceph提供REST风格的接口称为RGW(RADOS GateWay),能够兼容S3和Swift的接口
-- 文件存储：Ceph提供了兼容POSIX的网络文件系统CephFS，主要有高性能、大数据存储的特性
 - 块存储：Ceph中的块设备称为RBD(RADOS Block Device), 常为虚拟化应用提供后端存储，比如OpenStack的cinder后端存储、Glance的镜像存储和虚拟机的数据存储等
+- 文件存储：Ceph提供了兼容POSIX的网络文件系统CephFS，主要有高性能、大数据存储的特性
+- 对象存储：Ceph将提供REST风格接口的组件称为RGW(RADOS GateWay),它能够同时兼容S3和Swift的协议
+
 
 ###### 1.2 组件
-在一个Ceph集群中，主要有以下几个组件组成：
+在一个Ceph集群中，主要有以下几个部分组成：
 
-- Ceph MON: (Monitor)主要用于管理集群图(cluster map)，即集群中的各个组件的信息和关系，在一个集群中必须有多个Monitor进行高可用；
-- Ceph OSD: (Object Storage Device)存储数据并检查自身及其他OSD的状态并定时报告给Monitor；
-- Ceph MGR: (Manager)主要用来提供给外部监控工具监控Ceph的接口；
-- Ceph MDS: (Metadata Server)Ceph在提供CephFS文件系统功能使，需要使用该组件来进行文件的查询；
+- Ceph MON: (Monitor)用于管理集群图(cluster map)，即分布式集群中的各个组件的信息和关系，在一个生产集群中必须部署多个Monitor以提高系统的可靠性；
+- Ceph OSD: (Object Storage Device)提供数据存储服务，并能进行自检及获取其他OSD的状态并定时报告给Monitor；
+- Ceph MGR: (Manager)提供了外部工具监控Ceph所需的模块；
+- Ceph MDS: (Metadata Server)提供文件系统元数据管理和服务的功能；
 - Ceph Client: 用于和Ceph集群交互的客户端；
 
 ###### 1.3 集群图(*cluster map*)
 在Ceph集群中，有以下五类map组成cluster map:
 
-- The Monitor Map: 保存集群的fsid(集群唯一ID号)和集群中每个Monitor的名称、地址和端口号，Monitor Map的创建时间和最后修改时间以及当前版本号，可以使用```ceph mon dump```命令查看;
+- The Monitor Map: 保存集群的fsid(集群唯一ID号)和集群中每个Monitor的名称、地址和端口号，Monitor Map的创建时间和最后修改时间以及当前版本号，可以使用`ceph mon dump`命令查看;
 ```
 $ ceph mon dump
 dumped monmap epoch 1
@@ -32,7 +33,7 @@ created 2018-11-05 14:07:18.357622
 0: 192.168.4.51:6789/0 mon.mon
 ```
 
-- The OSD Map: 包含集群的fsidh和集群中每个OSD的状态、数据分布时的权重以及地址端口等信息，另外还有OSD Map的创建时间，最近修改时间以及版本号，其他的则为一些属性信息，可以使用```ceph osd dump```命令查看；
+- The OSD Map: 包含集群的fsidh和集群中每个OSD的状态、数据分布时的权重以及地址端口等信息，另外还有OSD Map的创建时间，最近修改时间以及版本号，其他的则为一些属性信息，可以使用`ceph osd dump`命令查看；
 ```
 $ ceph osd dump
 epoch 85
@@ -65,7 +66,7 @@ OSD_STAT USED    AVAIL   TOTAL   HB_PEERS        PG_SUM PRIMARY_PG_SUM
 7        1.0 GiB 223 GiB 224 GiB [0,1,2,3,4,5,6]      0              0
 ```
 
-- The CRUSH Map: 用于保存所有的存储设备以及划分失败域以及数据保存中所使用的数据存储规则，使用```ceph osd getcrushmap -o filename```和```crushtool -d crushbinfile -o outputfilename```命令查看；
+- The CRUSH Map: 用于保存所有的存储设备、划分失败域以及数据保存中所使用的数据存储规则，使用`ceph osd getcrushmap -o filename`和`crushtool -d crushbinfile -o outputfilename`命令查看；
 ```
 $ ceph osd getcrushmap -o crush.map.bin
 $ crushtool -d crush.map.bin -o crush.map
@@ -89,7 +90,7 @@ rule replicated_rule {
 # end crush map
 ```
 
-- The MDS Map: 包括了MDS Map版本号、创建和修改时间以及保存元数据的池，元数据服务器列表和状态，使用```ceph fs dump```命令查看
+- The MDS Map: 包括了MDS Map版本号、创建和修改时间以及保存元数据的池，元数据服务器列表和状态，使用`ceph fs dump`命令查看
 ```
 $ ceph fs dump
 dumped fsmap epoch 1
