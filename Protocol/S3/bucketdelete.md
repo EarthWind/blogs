@@ -1,3 +1,5 @@
+删除bucket之前bucket内的所有对象都要先删除，即只能删除空的bucket
+
 ## 请求参数
 - Bucket: 必填，bucket名称
 

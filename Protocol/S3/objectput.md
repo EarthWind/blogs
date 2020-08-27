@@ -29,22 +29,22 @@
 - Key: 对象名称
 - x-amz-acl: 对象的内置acl权限
 - x-amz-grant-full-control: 赋予全部权限
-- x-amz-grant-read：赋予读权限
-- x-amz-grant-read-acp：赋予读权限
-- x-amz-grant-write-acp：赋予写权限
-- x-amz-object-lock-legal-hold: 
-- x-amz-object-lock-mode: 
-- x-amz-object-lock-retain-until-date: 
-- x-amz-request-payer:
-- x-amz-server-side-encryption:
-- x-amz-server-side-encryption-aws-kms-key-id:
-- x-amz-server-side-encryption-context:
-- x-amz-server-side-encryption-customer-algorithm: 
-- x-amz-server-side-encryption-customer-key:
-- x-amz-server-side-encryption-customer-key-MD5:
-- x-amz-storage-class:
-- x-amz-tagging:
-- x-amz-website-redirect-location:
+- x-amz-grant-read：被赋予读权限的用户能够获取对象数据和元数据
+- x-amz-grant-read-acp：赋予能够读取对象的ACL
+- x-amz-grant-write-acp：赋予能够修改对象的ACL
+- x-amz-object-lock-legal-hold: 指定一个合法的锁定是否可以应用到该对象上，可选值：ON | OFF
+- x-amz-object-lock-mode: 应用到该对象的对象锁模式，可选值：GOVERNANCE | COMPLIANCE
+- x-amz-object-lock-retain-until-date: 该对象上对象锁的过期时间
+- x-amz-request-payer: 请求者确定该请求会被收费，可选值：requester
+- x-amz-server-side-encryption: 对象存储到后端存储时使用的加密算法，可选值：AES256 | aws:kms
+- x-amz-server-side-encryption-aws-kms-key-id: 如果参数x-amz-server-side-encryption指定的值为aws:kms，则该参数用于指定aws kms中的应用到该对象的CMK id
+- x-amz-server-side-encryption-context: 指定对象加密的KMS加密内容
+- x-amz-server-side-encryption-customer-algorithm: 指定用用于加密对象的算法
+- x-amz-server-side-encryption-customer-key: 指定用于加密数据的加密密钥
+- x-amz-server-side-encryption-customer-key-MD5: 指定用于加密密钥的MD5校验值
+- x-amz-storage-class: 指定对象的存储类，不指定则会选取默认的存储类，可选值为：STANDARD | REDUCED_REDUNDANCY | STANDARD_IA | ONEZONE_IA | INTELLIGENT_TIERING | GLACIER | DEEP_ARCHIVE
+- x-amz-tagging: 对象的标签对，以URL查询参数的形式进行编码(key1=value1)
+- x-amz-website-redirect-location: 如果bucket被配置为一个静态站点，该参数会将获取该对象的请求重定向到同bucket内对象或外部的链接
 
 Method: PUT
 
@@ -55,15 +55,15 @@ Method: PUT
 成功：200
 
 头部可包含一下字段：
-- ETag: 对象的实体标签
-- x-amz-expiration：如果上传时包含了Expires字段，请求返回需要包含该字段
-- x-amz-request-charged：
-- x-amz-server-side-encryption：
-- x-amz-server-side-encryption-aws-kms-key-id：
-- x-amz-server-side-encryption-context：
-- x-amz-server-side-encryption-customer-algorithm：
-- x-amz-server-side-encryption-customer-key-MD5：
-- x-amz-version-id：
+- ETag: 对象的实体标签，一般为对象的MD5内容的MD5值
+- x-amz-expiration：如果上传时包含了Expires字段，请求返回需要包含该字段，指定了对象的缓存过期时间
+- x-amz-request-charged：如果存在，则表明请求者已成功为请求付费，可选值：requester
+- x-amz-server-side-encryption：对应请求参数内容
+- x-amz-server-side-encryption-aws-kms-key-id：对应请求参数内容
+- x-amz-server-side-encryption-context：对应请求参数内容
+- x-amz-server-side-encryption-customer-algorithm：对应请求参数内容
+- x-amz-server-side-encryption-customer-key-MD5：对应请求参数内容
+- x-amz-version-id：对象的版本id
 
 ## 参考链接
 [PutObject](https://docs.aws.amazon.com/AmazonS3/latest/API/API_PutObject.html)

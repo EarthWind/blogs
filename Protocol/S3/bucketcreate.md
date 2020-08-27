@@ -1,11 +1,11 @@
 ## 请求参数
 - Bucket: 必填，bucket名称
 - x-amz-acl: 内置acl，包括private | public-read | public-read-write | authenticated-read
-- x-amz-bucket-object-lock-enabled: 是否使能对象所
+- x-amz-bucket-object-lock-enabled: 是否开启对象所
 - x-amz-grant-full-control: 赋予指定用户该buket的所有控制权限
-- x-amz-grant-read: 赋予指定用户的读权限
-- x-amz-grant-read-acp: 赋予指定用户的读权限
-- x-amz-grant-write: 赋予指定用户的写权限
+- x-amz-grant-read: 赋予指定用户具有读取bucket数据和元数据
+- x-amz-grant-read-acp: 赋予指定用户可以读取bucket的ACL
+- x-amz-grant-write: 赋予指定用户可以修改bucket的ACL
 - x-amz-grant-write-acp: 赋予指定用户的写权限
 
 Method: PUT
