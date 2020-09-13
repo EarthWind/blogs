@@ -1,5 +1,5 @@
 ## CreateMultipartUpload
-初始化一个multipart上传并返回一个上传ID，这个ID会见指定得multipart中所有得parts关联起来，在每一个上传part(UploadPart)的请求中需要带上这个ID，另外在完成以及终止multipart上传的请求中都需要带上；如果bucket配置了终止multipart上床的生命周期规则，则上传的需要在指定的时间内完成，否则上传请求会在到期后被终止掉；对于请求的认证情况，时一个一系列常规的请求，初始化multipart,上传part,结束上传过程，每个请求都时独立认证的，和其他请求没有相比没有特殊的地方；
+multipartUpload API可以分part上传大对象，CreateMultipartUpload初始化一个multipartUpload并返回一个上传ID，这个ID会见指定得multipart中所有得parts关联起来，在每一个上传part(UploadPart)的请求中需要带上这个ID，另外在完成以及终止multipart上传的请求中都需要带上；如果bucket配置了终止multipart上床的生命周期规则，则上传的需要在指定的时间内完成，否则上传请求会在到期后被终止掉；对于请求的认证情况，时一个一系列常规的请求，初始化multipart,上传part,结束上传过程，每个请求都时独立认证的，和其他请求没有相比没有特殊的地方；
 
 ## 请求参数
 - Bucket: 上传的bucket名称
