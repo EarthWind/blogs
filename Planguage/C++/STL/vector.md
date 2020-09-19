@@ -1,12 +1,14 @@
 # vector
 `#include <vector>`
-> verctor是自动分配的连续的内存空间，可以进行扩张，但也有最大值的限制
+
+verctor是自动分配的连续的内存空间，可以进行扩张，但也有最大值的限制
 
 ## 方法
 #### 元素访问
 - `at(index)`
-> 随机获取指定索引的元素，并对越界访问进行检查
-```c
+随机获取指定索引的元素，并对越界访问进行检查
+
+```c++
 vector<int> v = {7, 5, 16, 34, 3, 4};
 cout << "v.at(0) = " << v.at(0) << endl;
 cout << "v.at(6) = " << v.at(6) << endl;
@@ -17,9 +19,11 @@ terminate called after throwing an instance of 'std::out_of_range'
 Aborted
 **/
 ```
+
 - `operator[]`
-> 随机获取指定索引的元素
-```c
+随机获取指定索引的元素
+
+```c++
 vector<int> v = {7, 5, 16, 34, 3, 4};
 cout << "v[2] = " << v[2] << endl;
 cout << "v[7] = " << v[7] << endl;
@@ -33,8 +37,9 @@ v[7] = 0
 - `front()`
 - `back()`
 - `data()`
-> 分别获取头节点、尾节点元素以及指向头节点的指针
-```c
+分别获取头节点、尾节点元素以及指向头节点的指针
+
+```c++
 vector<int> v = {7, 5, 16, 34, 3, 4};
 cout << "v.front() = " << v.front() << endl;
 cout << "v.back() = " << v.back() << endl;
@@ -60,7 +65,8 @@ v.data() = 7
 - `rend()`
 - `crend()`
 > 获取方向尾迭代器
-```c
+
+```c++
 vector<int> v = {7, 5, 16, 34, 3, 4};
 cout << "vectore itertor" << endl;
 for(auto it = v.begin(); it != v.end(); it++){
@@ -105,6 +111,7 @@ vectore itertor
 > 获取当前vector当前占用的空间
 - `shrink_to_fit()`
 > c++11引入，将vector的大小缩小至实际使用的大小
+
 ```c
 vector<int> v = {7, 5, 16, 34, 3, 4};
 
@@ -145,8 +152,9 @@ v.capacity() : 6
 
 #### 修改器
 - `clear()`
-> 清空vector
-```c
+清空vector
+
+```c++
 vector<int> v = {7, 5, 16, 34, 3, 4};
 cout << "clear vector" << endl;
 v.clear();
@@ -160,8 +168,9 @@ v.size() : 0
 
 
 - `insert()`
-> 往迭代器之前插入一个元素或两个迭代器范围内的元素；
-```c
+往迭代器之前插入一个元素或两个迭代器范围内的元素；
+
+```c++
 #include <iostream>
 #include <vector>
 
@@ -197,9 +206,11 @@ int main(){
  501 502 503 200 100 400 400 100 100
 ***/
 ```
+
 - `emplace()`
-> 插入元素，但是不产生临时对象
-```c
+插入元素，但是不产生临时对象
+
+```c++
 vector<string> v5;
 v5.emplace(v5.begin(), "emplace string1");
 v5.emplace(v5.begin(), "emplace string2");
@@ -214,8 +225,9 @@ emplace string1
 ```
 
 - `erase()`
-> 删除某个元素或某段位置内的元素，会造成数据的前移
-```c
+删除某个元素或某段位置内的元素，会造成数据的前移
+
+```c++
 vector<int> v4 = {1, 2, 3, 4, 5};
 int i = 1;
 v4.erase(v4.begin(), v4.end());
@@ -228,8 +240,9 @@ v4.size() : 0
 
 - `push_back()`
 - `pop_back()`
-> 添加元素到尾部或弹出
-```c
+添加元素到尾部或弹出
+
+```c++
 cout << "push_back()" << endl;
 v.push_back(1);
 for(auto it : v) {
@@ -250,7 +263,8 @@ pop_back()
 v.size() : 0
 **/
 ```
-```c
+
+```c++
 vector<string> v1;
 v1.push_back("string1");
 string s = "string2";
@@ -276,8 +290,9 @@ v1 print done
 ```
 
 - `emplace_back()`
-> 再vector末尾添加元素，不引入临时变量
-```c
+ 再vector末尾添加元素，不引入临时变量
+
+```c++
 vector<string> v2;
 v2.emplace_back("emplace_back string1");
 for(auto it: v2) {
@@ -292,11 +307,12 @@ emplace_back string1
 
 
 - `resize()`
-> 修改vector能够存储元素的最大值，及size()的大小
+修改vector能够存储元素的最大值，及size()的大小
 
 - `swap()`
-> 赋值vector，交换两个vector的值
-```c
+赋值vector，交换两个vector的值
+
+```c++
 vector<string> v2;
 v2.emplace_back("emplace_back string1");
 v2.push_back("push_back string2");
