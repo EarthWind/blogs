@@ -31,13 +31,35 @@ CompleteMultipartUpload请求有以下特殊的错误：
 ```
 
 ## 返回
-- ETag: 对象etag
+- x-amz-expiration: 对象的缓冲过期时间
 - x-amz-request-charged: 确认该请求已被正常收费
 - x-amz-server-side-encryption: 服务端加密算法
 - x-amz-server-side-encryption-aws-kms-key-id: 服务端加密使用的kms id
 - x-amz-server-side-encryption-customer-algorithm: 客户端加密算法
 - x-amz-server-side-encryption-customer-key-MD5: 客户端加密秘钥的md5值
+- x-amz-version-id: 如果bucket开启了版本功能，则会放回对象的版本id
+- CompleteMultipartUploadResult: 必填，删除结果顶层xml
+- Bucket: 创建对象的bucket
+- ETag: 对象etag
+- Key: 对象key
+- Location: 对象的location
+
+```
+HTTP/1.1 200
+x-amz-expiration: Expiration
+x-amz-server-side-encryption: ServerSideEncryption
+x-amz-version-id: VersionId
+x-amz-server-side-encryption-aws-kms-key-id: SSEKMSKeyId
+x-amz-request-charged: RequestCharged
+<?xml version="1.0" encoding="UTF-8"?>
+<CompleteMultipartUploadResult>
+   <Location>string</Location>
+   <Bucket>string</Bucket>
+   <Key>string</Key>
+   <ETag>string</ETag>
+</CompleteMultipartUploadResult>
+```
 
 ## 参考链接
-[CompleteMultipartUpload](https://docs.aws.amazon.com/AmazonS3/latest/API/API_UploadPart.html)
+[CompleteMultipartUpload](https://docs.aws.amazon.com/AmazonS3/latest/API/API_CompleteMultipartUpload.html)
 
